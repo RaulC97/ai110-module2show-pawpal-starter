@@ -23,12 +23,16 @@
 **a. Constraints and priorities**
 
 - What constraints does your scheduler consider (for example: time, priority, preferences)?
+    - First its based on time, then theres a tie breaker check for priority
 - How did you decide which constraints mattered most?
+    - Time do to being a scheduling app, next was priority.
 
 **b. Tradeoffs**
 
 - Describe one tradeoff your scheduler makes.
+    - In the get_conflicts function in scheduler, i decided to make it more readable
 - Why is that tradeoff reasonable for this scenario?
+    - uses a defaultdict instead of a dictionary
 
 ---
 

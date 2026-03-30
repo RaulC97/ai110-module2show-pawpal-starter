@@ -1,5 +1,6 @@
+from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import List, Optional
 
@@ -36,6 +37,24 @@ class Task:
     def mark_complete(self):
         """Mark this task as completed."""
         self.completed = True
+
+    def next_occurrence(self) -> Optional["Task"]:
+        """Return a new pending Task scheduled for the next occurrence.
+
+        Returns None if frequency is ONCE — no follow-up needed.
+        DAILY tasks advance by 1 day; WEEKLY tasks advance by 7 days.
+        """
+        if self.frequency == Frequency.ONCE:
+            return None
+        delta = timedelta(days=1) if self.frequency == Frequency.DAILY else timedelta(weeks=1)
+        return Task(
+            title=self.title,
+            description=self.description,
+            time=self.time + delta,
+            priority=self.priority,
+            frequency=self.frequency,
+            completed=False,
+        )
 
     def __str__(self):
         status = "Done" if self.completed else "Pending"
@@ -108,6 +127,26 @@ class Scheduler:
             key=lambda t: (t.time, -t.priority.value)
         )
 
+    def mark_task_complete(self, task: Task):
+        """Mark a task complete and, if it recurs, schedule the next occurrence.
+
+        For DAILY/WEEKLY tasks a new Task is created with the next due time and
+        added back to the owning pet. The schedule is regenerated automatically
+        so the new occurrence appears immediately in scheduled_tasks.
+        Raises ValueError if the task is not found in any pet's list.
+        """
+        pet = next((p for p in self.owner.pets if task in p.tasks), None)
+        if pet is None:
+            raise ValueError("Task does not belong to any pet under this owner.")
+
+        task.mark_complete()
+
+        next_task = task.next_occurrence()
+        if next_task is not None:
+            pet.add_task(next_task)
+
+        self.generate()
+
     def get_pending(self) -> List[Task]:
         """Return all scheduled tasks that are not yet completed."""
         return [t for t in self.scheduled_tasks if not t.completed]
@@ -122,6 +161,47 @@ class Scheduler:
         if not pet:
             return []
         return pet.tasks
+
+    def get_conflicts(self) -> List[str]:
+        """Return a warning string for each time slot with two or more pending tasks."""
+        by_time: defaultdict = defaultdict(list)
+        for pet in self.owner.pets:
+            for task in pet.tasks:
+                if not task.completed:
+                    by_time[task.time].append((task, pet.name))
+
+        return [
+            f"WARNING: Conflict at {slot.strftime('%Y-%m-%d %I:%M %p')} — "
+            + ", ".join(f"'{t.title}' ({name})" for t, name in entries)
+            for slot, entries in sorted(by_time.items())
+            if len(entries) > 1
+        ]
+
+    def sort_by_time(self) -> List[Task]:
+        """Return scheduled tasks sorted by time, then by descending priority."""
+        return sorted(self.scheduled_tasks, key=lambda t: (t.time, -t.priority.value))
+
+    def filter_tasks(self, completed: Optional[bool] = None, pet_name: Optional[str] = None) -> List[Task]:
+        """Return scheduled tasks filtered by completion status and/or pet name.
+
+        Args:
+            completed: If True, return only completed tasks. If False, return only
+                       pending tasks. If None, skip this filter.
+            pet_name:  If provided, return only tasks belonging to that pet (case-
+                       insensitive). If None, skip this filter.
+        """
+        results = self.scheduled_tasks
+
+        if completed is not None:
+            results = [t for t in results if t.completed == completed]
+
+        if pet_name is not None:
+            pet = self.owner.get_pet(pet_name)
+            if pet is None:
+                return []
+            results = [t for t in results if t in pet.tasks]
+
+        return results
 
     def summary(self):
         """Print a full schedule report with total, completed, and pending task counts."""
