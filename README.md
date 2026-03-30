@@ -17,6 +17,7 @@ Tasks can repeat on a `DAILY` (+1 day) or `WEEKLY` (+7 days) cadence. When a rec
 ### Owner-scoped Task Assignment
 `Owner.create_task()` enforces that a task can only be assigned to a pet that belongs to that owner, raising `ValueError` for unrecognized pets. Tasks live on the `Pet`, not the `Owner`, so each pet carries its own independent task list and pending/completed views via `Pet.get_pending_tasks()` and `Pet.get_completed_tasks()`.
 
+<img width="605" height="872" alt="Screenshot 2026-03-29 221425" src="https://github.com/user-attachments/assets/3965d1ef-e6e8-4e2b-b510-88e0f2b44031" />
 
 
 You are building **PawPal+**, a Streamlit app that helps a pet owner plan care tasks for their pet.
