@@ -5,7 +5,9 @@
 **a. Initial design**
 
 - Briefly describe your initial UML design.
+    - To start, there is an Owner, Pet, Task, and Schedule.
 - What classes did you include, and what responsibilities did you assign to each?
+    - Owner has 1 or many Pets, Owner creates 0 or many Task, app creates Schedule.
 
 **b. Design changes**
 
