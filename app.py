@@ -75,27 +75,89 @@ else:
             frequency=Frequency[task_freq],
         )
         owner.create_task(pet, task)
+        scheduler.generate()
         st.success(f"Task '{task_title}' added to {task_pet}.")
 
 st.divider()
 
+# --- Conflict Warnings ---
+conflicts = scheduler.get_conflicts()
+if conflicts:
+    st.subheader("⚠️ Schedule Conflicts")
+    for msg in conflicts:
+        st.warning(msg)
+
 # --- Generate Schedule ---
 st.subheader("Today's Schedule")
 
-if st.button("Generate Schedule"):
-    scheduler.generate()
+col_gen, col_filter = st.columns([1, 2])
+with col_gen:
+    if st.button("Generate Schedule"):
+        scheduler.generate()
+
+with col_filter:
+    pet_filter_options = ["All pets"] + [p.name for p in owner.pets]
+    pet_filter = st.selectbox("Filter by pet", pet_filter_options, label_visibility="collapsed")
 
 if scheduler.scheduled_tasks:
-    for task in scheduler.scheduled_tasks:
-        pet_name_label = next(
-            (p.name for p in owner.pets if task in p.tasks), "?"
-        )
-        status = "✅" if task.completed else "🕐"
-        st.markdown(
-            f"{status} **{task.time.strftime('%I:%M %p')}** — "
-            f"{task.title} *({pet_name_label})* | "
-            f"`{task.priority.name}` | `{task.frequency.value}`"
-        )
-        st.caption(f"   {task.description}")
+    # Build a pet-name lookup keyed by object id (Task is unhashable by default)
+    task_to_pet = {
+        id(task): p.name
+        for p in owner.pets
+        for task in p.tasks
+    }
+
+    # Use Scheduler methods for sorted + filtered data
+    filter_pet = None if pet_filter == "All pets" else pet_filter
+    sorted_tasks = scheduler.sort_by_time()
+    if filter_pet:
+        sorted_tasks = [t for t in sorted_tasks if task_to_pet.get(id(t)) == filter_pet]
+
+    pending = [t for t in sorted_tasks if not t.completed]
+    done    = [t for t in sorted_tasks if t.completed]
+
+    # --- Pending tasks table ---
+    if pending:
+        st.markdown("#### Pending")
+        rows = [
+            {
+                "Time":        t.time.strftime("%I:%M %p"),
+                "Task":        t.title,
+                "Pet":         task_to_pet.get(id(t), "?"),
+                "Priority":    t.priority.name,
+                "Frequency":   t.frequency.value,
+                "Description": t.description,
+            }
+            for t in pending
+        ]
+        st.table(rows)
+    else:
+        st.success("All tasks are completed — great work!")
+
+    # --- Completed tasks table ---
+    if done:
+        with st.expander(f"Completed tasks ({len(done)})"):
+            rows = [
+                {
+                    "Time":      t.time.strftime("%I:%M %p"),
+                    "Task":      t.title,
+                    "Pet":       task_to_pet.get(id(t), "?"),
+                    "Priority":  t.priority.name,
+                    "Frequency": t.frequency.value,
+                }
+                for t in done
+            ]
+            st.table(rows)
+
+    # --- Summary metrics ---
+    st.divider()
+    total   = len(scheduler.scheduled_tasks)
+    n_done  = sum(1 for t in scheduler.scheduled_tasks if t.completed)
+    n_pend  = total - n_done
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Total Tasks",     total)
+    m2.metric("Pending",         n_pend)
+    m3.metric("Completed",       n_done)
+
 else:
     st.info("Add tasks and click 'Generate Schedule' to see results.")

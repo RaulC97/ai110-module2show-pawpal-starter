@@ -1,5 +1,24 @@
 # PawPal+ (Module 2 Project)
 
+## Features
+
+### Multi-key Sorting
+Tasks are sorted by two keys: scheduled time (ascending) and priority (descending) as a tiebreaker. When two tasks share the same time slot, the higher-priority task always appears first. Implemented in `Scheduler.generate()` and `Scheduler.sort_by_time()` using Python's `sorted()` with a compound tuple key `(task.time, -task.priority.value)`.
+
+### Recurring Task Scheduling
+Tasks can repeat on a `DAILY` (+1 day) or `WEEKLY` (+7 days) cadence. When a recurring task is marked complete, `Task.next_occurrence()` creates a new `Task` instance at the next due time — preserving the original title, description, priority, and frequency — and adds it back to the pet's task list. The schedule is regenerated automatically so the new occurrence appears immediately.
+
+### Conflict Detection
+`Scheduler.get_conflicts()` groups all pending tasks by their exact `datetime` across every pet. Any time slot that has two or more pending tasks triggers a warning string that names each conflicting task and its pet. Completed tasks are excluded so resolved conflicts do not keep appearing.
+
+### Completion Status Filtering
+`Scheduler.filter_tasks()` accepts optional `completed` and `pet_name` parameters and composes them independently. Passing `completed=False` returns only pending tasks; `pet_name="Bella"` narrows results to one pet; both together intersect the two filters. The method operates on `scheduled_tasks` so sort order is always preserved.
+
+### Owner-scoped Task Assignment
+`Owner.create_task()` enforces that a task can only be assigned to a pet that belongs to that owner, raising `ValueError` for unrecognized pets. Tasks live on the `Pet`, not the `Owner`, so each pet carries its own independent task list and pending/completed views via `Pet.get_pending_tasks()` and `Pet.get_completed_tasks()`.
+
+
+
 You are building **PawPal+**, a Streamlit app that helps a pet owner plan care tasks for their pet.
 
 ## Scenario
