@@ -12,7 +12,9 @@
 **b. Design changes**
 
 - Did your design change during implementation?
+    - Yes
 - If yes, describe at least one change and why you made it.
+    - Changed the priority to an Enum instead of str, and use Date instead of str.
 
 ---
 
