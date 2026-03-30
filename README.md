@@ -41,3 +41,12 @@ pip install -r requirements.txt
 5. Add tests to verify key behaviors.
 6. Connect your logic to the Streamlit UI in `app.py`.
 7. Refine UML so it matches what you actually built.
+
+
+# Testing PawPal+
+
+cd tests then run python -m pytest
+
+In these test, we test creating tasks, adding pets, making owner with pits. Next is testing
+the sorting of the scheduler, which task comes up first if the time is the same. Testing
+recurring logic.
